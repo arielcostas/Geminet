@@ -1,4 +1,4 @@
-﻿namespace ServidorGemini;
+﻿namespace Costasdev.Geminet;
 
 public class Program
 {

@@ -1,12 +1,10 @@
 ﻿using System.Net;
-using System.Net.Mime;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
-using Costasdev.Geminet;
 using Costasdev.Geminet.Protocol;
 
-namespace ServidorGemini;
+namespace Costasdev.Geminet;
 
 public class Server
 {
