@@ -2,6 +2,7 @@
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
+using Costasdev.Geminet.Config;
 using Costasdev.Geminet.Protocol;
 
 namespace Costasdev.Geminet;
@@ -9,9 +10,11 @@ namespace Costasdev.Geminet;
 public class Server
 {
     private TcpListener _listener;
+    private List<Site> _sites;
 
-    public Server(int port)
+    public Server(int port, List<Site> sites)
     {
+        _sites = sites;
         _listener = new TcpListener(IPAddress.Any, port);
     }
 
@@ -19,7 +22,8 @@ public class Server
     public async Task Start()
     {
         _listener.Start();
-        for (;;)
+        Console.WriteLine($"Listening on port {_listener.LocalEndpoint}");
+        while (true)
         {
             var client = await _listener.AcceptTcpClientAsync();
             ProcessClient(client);
