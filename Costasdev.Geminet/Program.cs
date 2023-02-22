@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using Costasdev.Geminet.Config;
+﻿using Costasdev.Geminet.Config;
 
 namespace Costasdev.Geminet;
 
@@ -7,9 +6,8 @@ public class Program
 {
     static void Main(string[] args)
     {
-        var sites = new Parser("server.ini").GetSites();
+        var sites = new Parser("server.json").GetSites();
 
-        // TODO: Group sites by port and host and start a server per group
         var groups = sites.GroupBy(s => s.Port);
         var tasks = new List<Task>();
         

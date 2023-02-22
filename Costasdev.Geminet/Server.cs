@@ -10,20 +10,25 @@ namespace Costasdev.Geminet;
 public class Server
 {
     private TcpListener _listener;
-    private List<Site> _sites;
+    private Dictionary<string, Site> _hostsToSites;
+    private bool _isRunning = true;
 
     public Server(int port, List<Site> sites)
     {
-        _sites = sites;
+        _hostsToSites = new Dictionary<string, Site>();
+        foreach (var site in sites)
+        {
+            _hostsToSites.Add(site.HostName, site);
+        }
+
         _listener = new TcpListener(IPAddress.Any, port);
     }
 
-    //Resharper disable once FunctionNeverReturns
     public async Task Start()
     {
         _listener.Start();
         Console.WriteLine($"Listening on port {_listener.LocalEndpoint}");
-        while (true)
+        while (_isRunning)
         {
             var client = await _listener.AcceptTcpClientAsync();
             ProcessClient(client);
@@ -44,7 +49,7 @@ public class Server
         var sw = new StreamWriter(encryptedStream);
 
         var line = sr.ReadLine();
-        var resp = new Response($"Hola, mandaste {line}");
+        var resp = new Response($"Hola, mandaste {line}" + _hostsToSites);
 
         sw.WriteLine(resp);
         await sw.FlushAsync();

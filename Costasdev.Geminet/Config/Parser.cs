@@ -1,45 +1,34 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Newtonsoft.Json;
 
 namespace Costasdev.Geminet.Config;
 
 public class Parser
 {
-    private readonly IConfiguration _configuration;
+    private readonly ConfigRoot _configRoot;
 
     public Parser(string configFilename)
     {
-        _configuration = new ConfigurationBuilder()
-            .AddIniFile(configFilename)
-            .Build();
+        var sr = new StreamReader(configFilename);
+        ConfigRoot? cr = JsonConvert.DeserializeObject<ConfigRoot>(sr.ReadToEnd());
+        if (cr == null)
+        {
+            throw new Exception("Invalid configuration file");
+        }
+
+        _configRoot = cr;
     }
 
     public List<Site> GetSites()
     {
         List<Site> sites = new();
 
-        var config = (from child in _configuration.GetChildren() select child)
-            .ToDictionary(child => child.Key,
-                child => child.Value);
-
-        sites.Add(new(
-            true,
-            "default",
-            config["port"] ?? "1965",
-            config["path"] ?? Directory.GetCurrentDirectory()
-        ));
-        
-        var nonDefaultSites = (
-            from child in _configuration.GetChildren()
-            where child.Value == null
-            select child
-        ).ToList();
-        
-        foreach (var site in nonDefaultSites)
+        foreach (var site in _configRoot.sites)
         {
             sites.Add(new(
-                site.Key,
-                site["port"] ?? "1965",
-                site["path"] ?? Directory.GetCurrentDirectory()
+                site.name,
+                site.hostname,
+                site.listen,
+                site.serve
             ));
         }
 

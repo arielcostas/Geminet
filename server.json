@@ -1,0 +1,16 @@
+﻿{
+  "sites": [
+    {
+      "name": "Localhost",
+      "hostname": "localhost",
+      "listen": 1965,
+      "serve": "C:\\Gemini\\Default"
+    },
+    {
+      "name": "Ariel LAN",
+      "hostname": "ariel.lan",
+      "listen": 1966,
+      "serve": "C:\\Gemini\\Default"
+    }
+  ]
+}

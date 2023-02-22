@@ -1,28 +1,22 @@
-﻿using System.Net;
-
-namespace Costasdev.Geminet.Config;
+﻿namespace Costasdev.Geminet.Config;
 
 public class Site
 {
-    public bool DefaultSite { get; }
     public string Name { get; }
+    public string HostName { get; }
     public int Port { get; }
     public string ServePath { get; }
 
-    public Site(bool defaultSite, string name, string port, string servePath)
+    public Site(string name, string hostname, int port, string servePath)
     {
-        DefaultSite = defaultSite;
         Name = name;
-        Port = int.Parse(port);
+        HostName = hostname;
+        Port = port;
         ServePath = servePath;
-    }
-
-    public Site(string name, string port, string path) : this(false, name, port, path)
-    {
     }
 
     public override string ToString()
     {
-        return $"Site: `{Name}` Port: `{Port}` serving `{ServePath}`";
+        return $"Name: {Name}, HostName: {HostName}, Port: {Port}, ServePath: {ServePath}";
     }
 }
