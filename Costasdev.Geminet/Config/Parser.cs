@@ -20,15 +20,17 @@ public class Parser
 
     public List<Site> GetSites()
     {
+        var certificateUtility = new CertificateUtility(_configRoot);
         List<Site> sites = new();
 
-        foreach (var site in _configRoot.sites)
+        foreach (var site in _configRoot.Sites!)
         {
             sites.Add(new(
-                site.name,
-                site.hostname,
-                site.listen,
-                site.serve
+                site.Name,
+                site.Hostname,
+                site.Listen,
+                site.Serve,
+                certificateUtility.GetCertificateForHost(site.Hostname)
             ));
         }
 

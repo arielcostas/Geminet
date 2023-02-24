@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using Costasdev.Geminet.Config;
 using Costasdev.Geminet.Protocol;
@@ -37,21 +38,54 @@ public class Server
 
     private async void ProcessClient(TcpClient client)
     {
+        var stream = await InitTls(client, null);
+
+        var sr = new StreamReader(stream);
+        var sw = new StreamWriter(stream);
+
+        var line = await sr.ReadLineAsync();
+
+        if (line == null)
+        {
+            Console.WriteLine("Invalid request");
+            return;
+        }
+
+        var uri = new Uri(line);
+        var site = _hostsToSites[uri.Host];
+
+        if (site == null)
+        {
+            Console.WriteLine($"No site found for host {uri.Host}");
+            return;
+        }
+
+        var resp = new Response($"""
+# Hola
+
+Protocolo: {uri.Scheme}
+Host: {uri.Host}
+Puerto: {uri.Port}
+Path: {uri.AbsolutePath}
+Query: {uri.Query}
+
+""" + _hostsToSites);
+
+        sw.WriteLine(resp);
+        await sw.FlushAsync();
+    }
+
+    private async Task<SslStream> InitTls(TcpClient client, X509Certificate2 cert)
+    {
         var stream = client.GetStream();
         var encryptedStream = new SslStream(stream);
 
         await encryptedStream.AuthenticateAsServerAsync(new SslServerAuthenticationOptions
         {
-            ServerCertificate = new X509Certificate2("certs.pfx", "1234")
+            ServerCertificate = cert,
+            EnabledSslProtocols = SslProtocols.Tls12
         });
 
-        var sr = new StreamReader(encryptedStream);
-        var sw = new StreamWriter(encryptedStream);
-
-        var line = sr.ReadLine();
-        var resp = new Response($"Hola, mandaste {line}" + _hostsToSites);
-
-        sw.WriteLine(resp);
-        await sw.FlushAsync();
+        return encryptedStream;
     }
 }
