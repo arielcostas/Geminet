@@ -19,7 +19,7 @@ public class CertificateUtility
         {
             // TODO: Add .pfx extension everywhere with a method
             var path = Path.Join(_configFile.CertRoot, host + ".pfx");
-            
+
             return new X509Certificate2(path, _configFile.CertPassword);
         }
 
@@ -34,10 +34,10 @@ public class CertificateUtility
 
     private X509Certificate2 GenerateCertificate(string host)
     {
-        var dsa = ECDsa.Create();
+        var rsa = RSA.Create(4096);
 
         var req = new CertificateRequest(
-            $"CN={host}", dsa, HashAlgorithmName.SHA512
+            $"CN={host}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1
         );
 
         var cert = req.CreateSelfSigned(

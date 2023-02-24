@@ -1,16 +1,18 @@
 ﻿{
+  "certRoot": "C:\\Gemini\\certs",
+  "certPassword": "abc123.",
   "sites": [
     {
       "name": "Localhost",
       "hostname": "localhost",
       "listen": 1965,
-      "serve": "C:\\Gemini\\Default"
+      "serve": "C:\\Gemini\\sites\\Site1"
     },
     {
       "name": "Ariel LAN",
       "hostname": "ariel.lan",
       "listen": 1966,
-      "serve": "C:\\Gemini\\Default"
+      "serve": "C:\\Gemini\\sites\\Site2"
     }
   ]
 }

@@ -1,10 +1,9 @@
 ﻿using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using Costasdev.Geminet.Config;
 using Costasdev.Geminet.Protocol;
+using Microsoft.Extensions.Logging;
 
 namespace Costasdev.Geminet;
 
@@ -13,6 +12,7 @@ public class Server
     private TcpListener _listener;
     private Dictionary<string, Site> _hostsToSites;
     private bool _isRunning = true;
+    private ILogger _logger;
 
     public Server(int port, List<Site> sites)
     {
@@ -23,40 +23,59 @@ public class Server
         }
 
         _listener = new TcpListener(IPAddress.Any, port);
+        _logger = LoggerFactory.Create(conf => conf
+                .SetMinimumLevel(LogLevel.Debug)
+                .AddSimpleConsole(options =>
+                {
+                    options.SingleLine = true;
+                    options.TimestampFormat = "HH:mm:ss ";
+                })
+            )
+            .CreateLogger("SRV-" + port);
     }
 
     public async Task Start()
     {
         _listener.Start();
-        Console.WriteLine($"Listening on port {_listener.LocalEndpoint}");
+        _logger.LogInformation("Listening");
         while (_isRunning)
         {
             var client = await _listener.AcceptTcpClientAsync();
+            _logger.LogInformation("Accepted connection from {}", client.Client.RemoteEndPoint);
             ProcessClient(client);
         }
     }
 
     private async void ProcessClient(TcpClient client)
     {
-        var stream = await InitTls(client, null);
+        SslStream stream;
+        try
+        {
+            stream = await InitTls(client);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error cifrando conexión: {}", ex.Message);
+            return;
+        }
 
         var sr = new StreamReader(stream);
         var sw = new StreamWriter(stream);
 
         var line = await sr.ReadLineAsync();
+        _logger.LogInformation("Received request: {}", line ?? "null");
 
         if (line == null)
         {
-            Console.WriteLine("Invalid request");
+            _logger.LogInformation("Invalid request");
             return;
         }
 
         var uri = new Uri(line);
-        var site = _hostsToSites[uri.Host];
 
-        if (site == null)
+        if (!_hostsToSites.ContainsKey(uri.Host))
         {
-            Console.WriteLine($"No site found for host {uri.Host}");
+            _logger.LogError("No site found for host {0}", uri.Host);
             return;
         }
 
@@ -70,21 +89,33 @@ Path: {uri.AbsolutePath}
 Query: {uri.Query}
 
 """ + _hostsToSites);
+        
+        _logger.LogInformation("Sending response: {}", resp.Body.Length);
 
         sw.WriteLine(resp);
         await sw.FlushAsync();
+        stream.Close();
+        _logger.LogInformation("S'ha acabat");
     }
 
-    private async Task<SslStream> InitTls(TcpClient client, X509Certificate2 cert)
+    private async Task<SslStream> InitTls(TcpClient client)
     {
         var stream = client.GetStream();
         var encryptedStream = new SslStream(stream);
 
-        await encryptedStream.AuthenticateAsServerAsync(new SslServerAuthenticationOptions
+        await encryptedStream.AuthenticateAsServerAsync((_, info, _, _) =>
         {
-            ServerCertificate = cert,
-            EnabledSslProtocols = SslProtocols.Tls12
-        });
+            if (!_hostsToSites.ContainsKey(info.ServerName))
+            {
+                throw new Exception("Host not found. Cannot start TLS");
+            }
+
+            return new ValueTask<SslServerAuthenticationOptions>(
+                new SslServerAuthenticationOptions
+                {
+                    ServerCertificate = _hostsToSites[info.ServerName].Certificate
+                });
+        }, null);
 
         return encryptedStream;
     }
