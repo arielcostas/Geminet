@@ -17,7 +17,6 @@ public class CertificateUtility
     {
         if (CertificateExists(host))
         {
-            // TODO: Add .pfx extension everywhere with a method
             var path = Path.Join(_configFile.CertRoot, host + ".pfx");
 
             return new X509Certificate2(path, _configFile.CertPassword);
