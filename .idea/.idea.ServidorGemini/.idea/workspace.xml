@@ -20,7 +20,13 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="mock:///home/ariel/RiderProjects/Geminet/Costasdev.Geminet/CertificateUtility.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/73f58a70a76e491eb4bcf9d90ef5628b378a8/07/ee7acd50/SslProtocols.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/e534359e78374e8798c243164ddcfe84de80/ea/b2a8a1fe/ConsoleLoggerExtensions.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/4029f559b464b1d48da1f8839697dddec41d9e5d92e4eb8f2268eda3e16ff0/RSA.Create.Windows.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/9da875a0a18bd3ecad1e1ae1c92640dc163378105f3586d6c55ac5e77e24281b/ConsoleLoggerExtensions.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/e39736ceab09cb63e8cd7590f15183bed2fa1fcfc4f6f72ca60e4e7295d66/CertificateRequest.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Costasdev.Geminet/CertificateUtility.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Costasdev.Geminet/Server.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />

@@ -28,9 +28,10 @@ public class Parser
             sites.Add(new(
                 site.Name,
                 site.Hostname,
-                site.Listen,
+                site.Listen ?? 1965,
                 site.Serve,
-                certificateUtility.GetCertificateForHost(site.Hostname)
+                certificateUtility.GetCertificateForHost(site.Hostname),
+                site.GenerateIndex ?? false
             ));
         }
 

@@ -9,10 +9,10 @@ namespace Costasdev.Geminet;
 
 public class Server
 {
-    private TcpListener _listener;
-    private Dictionary<string, Site> _hostsToSites;
-    private bool _isRunning = true;
-    private ILogger _logger;
+    private readonly TcpListener _listener;
+    private readonly Dictionary<string, Site> _hostsToSites;
+    private readonly bool _isRunning;
+    private readonly ILogger _logger;
 
     public Server(int port, List<Site> sites)
     {
@@ -32,6 +32,7 @@ public class Server
                 })
             )
             .CreateLogger("SRV-" + port);
+        _isRunning = true;
     }
 
     public async Task Start()
