@@ -23,7 +23,15 @@ public class Server
         }
 
         _listener = new TcpListener(IPAddress.Any, port);
-        _logger = Loggers.CreateLogger("SRV-" + port);
+        _logger = LoggerFactory.Create(conf => conf
+                .SetMinimumLevel(LogLevel.Debug)
+                .AddSimpleConsole(options =>
+                {
+                    options.SingleLine = true;
+                    options.TimestampFormat = "HH:mm:ss ";
+                })
+            )
+            .CreateLogger("SRV-" + port);
         _isRunning = true;
     }
 

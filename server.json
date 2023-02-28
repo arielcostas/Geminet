@@ -1,6 +1,6 @@
 ﻿{
-  "certFile": "C:\\Gemini\\certs.pfx",
-  "certPassword": "abcabc",
+  "certRoot": "C:\\Gemini\\certs",
+  "certPassword": "abc123.",
   "sites": [
     {
       "name": "Localhost",

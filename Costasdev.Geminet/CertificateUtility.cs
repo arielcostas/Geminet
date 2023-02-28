@@ -1,84 +1,53 @@
 ﻿using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using Costasdev.Geminet.Config;
-using Microsoft.Extensions.Logging;
 
 namespace Costasdev.Geminet;
 
 public class CertificateUtility
 {
-    private readonly ConfigRoot _configFile;
-    private readonly ILogger _logger;
-    private readonly X509Certificate2Collection _certificates;
+    private ConfigRoot _configFile;
 
     public CertificateUtility(ConfigRoot configFile)
     {
         _configFile = configFile;
-        _logger = Loggers.CreateLogger("CERTUTIL");
-        _certificates = new X509Certificate2Collection();
-        if (File.Exists(_configFile.CertFile))
-        {
-            _certificates.Import(_configFile.CertFile, _configFile.CertPassword);
-        }
     }
 
-    /**
-     * Returns the certificate for the specified host. If the certificate does not exist, it is generated, saved and returned.
-     */
     public X509Certificate2 GetCertificateForHost(string host)
     {
-        var cert = _certificates
-            .Find(X509FindType.FindBySerialNumber, GenerateSerialNumber(host), true)
-            .FirstOrDefault();
+        if (CertificateExists(host))
+        {
+            var path = Path.Join(_configFile.CertRoot, host + ".pfx");
 
-        return cert ?? GenerateCertificate(host);
+            return new X509Certificate2(path, _configFile.CertPassword);
+        }
+
+        return GenerateCertificate(host);
     }
 
-    /**
-     * Generates a new certificate for the specified host.
-     */
+    private bool CertificateExists(string host)
+    {
+        var expectedCertificatePath = Path.Join(_configFile.CertRoot, host + ".pfx");
+        return File.Exists(expectedCertificatePath);
+    }
+
     private X509Certificate2 GenerateCertificate(string host)
     {
-        _logger.LogInformation("Generating a new certificate for host {}", host);
         var rsa = RSA.Create(4096);
 
         var req = new CertificateRequest(
-            $"CN={host}, {_configFile.CertOptions}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1
+            $"CN={host}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1
         );
 
-        // Creates a self-signed certificate with the private key and a custom serial number.
-        var cert = req.Create(
-            req.SubjectName,
-            X509SignatureGenerator.CreateForRSA(rsa, RSASignaturePadding.Pkcs1),
-            DateTimeOffset.Now,
-            DateTimeOffset.Now.AddYears(3),
-            GenerateSerialNumber(host)
+        var cert = req.CreateSelfSigned(
+            DateTimeOffset.Now, DateTimeOffset.Now.AddMonths(12)
         );
 
-        _logger.LogInformation("Saving certificate...");
-        X509Certificate2Collection certCollection = new() { cert };
+        var certBytes = cert.Export(X509ContentType.Pfx, _configFile.CertPassword);
+        var certPath = Path.Combine(_configFile.CertRoot, $"{host}.pfx");
 
-        if (File.Exists(_configFile.CertFile))
-        {
-            certCollection.Import(_configFile.CertFile, _configFile.CertPassword);
-        }
+        File.WriteAllBytes(certPath, certBytes);
 
-        certCollection.Export(X509ContentType.Pfx, _configFile.CertPassword);
-
-        _logger.LogInformation("Certificate ok!");
         return cert;
-    }
-
-    /**
-     * Generates a deterministic serial number for the specified host. This is used to identify the certificate for the
-     * host later. Using SHA256 we prevent collisions, at least in most cases and the serial number is 20 bytes long.
-     */
-    private byte[] GenerateSerialNumber(string host)
-    {
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(host));
-        var serial = new byte[20];
-        Array.Copy(hash, serial, 20);
-        return serial;
     }
 }
