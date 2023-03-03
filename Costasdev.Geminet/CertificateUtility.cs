@@ -6,20 +6,22 @@ namespace Costasdev.Geminet;
 
 public class CertificateUtility
 {
-    private ConfigRoot _configFile;
+    private string _certFile;
+    private string _certPassword;
 
-    public CertificateUtility(ConfigRoot configFile)
+    public CertificateUtility(string certFile, string certPassword)
     {
-        _configFile = configFile;
+        _certFile = certFile;
+        _certPassword = certPassword;
     }
 
     public X509Certificate2 GetCertificateForHost(string host)
     {
         if (CertificateExists(host))
         {
-            var path = Path.Join(_configFile.CertRoot, host + ".pfx");
+            var path = Path.Join(_certFile, host + ".pfx");
 
-            return new X509Certificate2(path, _configFile.CertPassword);
+            return new X509Certificate2(path, _certPassword);
         }
 
         return GenerateCertificate(host);
@@ -27,7 +29,7 @@ public class CertificateUtility
 
     private bool CertificateExists(string host)
     {
-        var expectedCertificatePath = Path.Join(_configFile.CertRoot, host + ".pfx");
+        var expectedCertificatePath = Path.Join(_certFile, host + ".pfx");
         return File.Exists(expectedCertificatePath);
     }
 
@@ -43,8 +45,8 @@ public class CertificateUtility
             DateTimeOffset.Now, DateTimeOffset.Now.AddMonths(12)
         );
 
-        var certBytes = cert.Export(X509ContentType.Pfx, _configFile.CertPassword);
-        var certPath = Path.Combine(_configFile.CertRoot, $"{host}.pfx");
+        var certBytes = cert.Export(X509ContentType.Pfx, _certPassword);
+        var certPath = Path.Combine(_certFile, $"{host}.pfx");
 
         File.WriteAllBytes(certPath, certBytes);
 

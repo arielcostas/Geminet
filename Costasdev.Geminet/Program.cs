@@ -1,22 +1,12 @@
-﻿using Costasdev.Geminet.Config;
+﻿using Costasdev.Geminet;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-namespace Costasdev.Geminet;
-
-public class Program
-{
-    static void Main(string[] args)
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices(services =>
     {
-        var sites = new Parser("server.json").GetSites();
+        services.AddHostedService<Server>();
+    })
+    .Build();
 
-        var groups = sites.GroupBy(s => s.Port);
-        var tasks = new List<Task>();
-        
-        foreach (var group in groups)
-        {
-            var server = new Server(group.Key, group.ToList());
-            tasks.Add(server.Start());
-        }
-        
-        Task.WaitAll(tasks.ToArray());
-    }
-}
+host.Run();

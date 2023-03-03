@@ -1,123 +1,51 @@
-﻿using System.Net;
-using System.Net.Security;
-using System.Net.Sockets;
-using Costasdev.Geminet.Config;
-using Costasdev.Geminet.Protocol;
-using Microsoft.Extensions.Logging;
+﻿using Costasdev.Geminet.Config;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace Costasdev.Geminet;
 
-public class Server
+public sealed class Server : BackgroundService
 {
-    private readonly TcpListener _listener;
-    private readonly Dictionary<string, Site> _hostsToSites;
-    private readonly bool _isRunning;
-    private readonly ILogger _logger;
+    private IConfiguration _configuration;
 
-    public Server(int port, List<Site> sites)
+    public Server(IConfiguration configuration)
     {
-        _hostsToSites = new Dictionary<string, Site>();
-        foreach (var site in sites)
-        {
-            _hostsToSites.Add(site.HostName, site);
-        }
-
-        _listener = new TcpListener(IPAddress.Any, port);
-        _logger = LoggerFactory.Create(conf => conf
-                .SetMinimumLevel(LogLevel.Debug)
-                .AddSimpleConsole(options =>
-                {
-                    options.SingleLine = true;
-                    options.TimestampFormat = "HH:mm:ss ";
-                })
-            )
-            .CreateLogger("SRV-" + port);
-        _isRunning = true;
+        _configuration = configuration;
     }
 
-    public async Task Start()
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _listener.Start();
-        _logger.LogInformation("Listening");
-        while (_isRunning)
-        {
-            var client = await _listener.AcceptTcpClientAsync();
-            _logger.LogInformation("Accepted connection from {}", client.Client.RemoteEndPoint);
-            ProcessClient(client);
-        }
-    }
+        var geminetSection = _configuration.GetRequiredSection("Geminet");
 
-    private async void ProcessClient(TcpClient client)
-    {
-        SslStream stream;
-        try
-        {
-            stream = await InitTls(client);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("Error cifrando conexión: {}", ex.Message);
-            return;
-        }
+        var sitesSection = geminetSection.GetRequiredSection("Sites").GetChildren();
 
-        var sr = new StreamReader(stream);
-        var sw = new StreamWriter(stream);
+        var sites = sitesSection.Select(s => new Site(
+            s.GetValue<string>("Name") ?? throw new Exception("Site Name must be set"),
+            s.GetValue<string>("HostName") ?? throw new Exception("Site HostName must be set"),
+            (int)s.GetValue<int>("Listen", 1965),
+            s.GetValue<string>("Serve") ?? throw new Exception("Site Serve must be set"),
+            s.GetValue<bool>("GenerateIndex", false)
+        )).ToList();
 
-        var line = await sr.ReadLineAsync();
-        _logger.LogInformation("Received request: {}", line ?? "null");
+        var groups = sites.GroupBy(s => s.Port);
+        var tasks = new List<Task>();
 
-        if (line == null)
+        var file = geminetSection.GetValue<string>("CertificatePath");
+        var pass = geminetSection.GetValue<string>("CertificatePassword");
+
+        if (string.IsNullOrEmpty(file) || string.IsNullOrEmpty(pass))
         {
-            _logger.LogInformation("Invalid request");
-            return;
+            throw new Exception("CertificatePath and CertificatePassword must be set");
         }
 
-        var uri = new Uri(line);
+        CertificateUtility certificateUtility = new(file, pass);
 
-        if (!_hostsToSites.ContainsKey(uri.Host))
+        foreach (var group in groups)
         {
-            _logger.LogError("No site found for host {0}", uri.Host);
-            return;
+            var listener = new Listener(group.Key, group.ToList(), certificateUtility, stoppingToken);
+            tasks.Add(listener.Start());
         }
 
-        var resp = new Response($"""
-# Hola
-
-Protocolo: {uri.Scheme}
-Host: {uri.Host}
-Puerto: {uri.Port}
-Path: {uri.AbsolutePath}
-Query: {uri.Query}
-
-""" + _hostsToSites);
-        
-        _logger.LogInformation("Sending response: {}", resp.Body.Length);
-
-        sw.WriteLine(resp);
-        await sw.FlushAsync();
-        stream.Close();
-        _logger.LogInformation("S'ha acabat");
-    }
-
-    private async Task<SslStream> InitTls(TcpClient client)
-    {
-        var stream = client.GetStream();
-        var encryptedStream = new SslStream(stream);
-
-        await encryptedStream.AuthenticateAsServerAsync((_, info, _, _) =>
-        {
-            if (!_hostsToSites.ContainsKey(info.ServerName))
-            {
-                throw new Exception("Host not found. Cannot start TLS");
-            }
-
-            return new ValueTask<SslServerAuthenticationOptions>(
-                new SslServerAuthenticationOptions
-                {
-                    ServerCertificate = _hostsToSites[info.ServerName].Certificate
-                });
-        }, null);
-
-        return encryptedStream;
+        return Task.WhenAll(tasks.ToArray());
     }
 }

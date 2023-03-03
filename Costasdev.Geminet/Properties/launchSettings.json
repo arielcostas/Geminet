@@ -1,0 +1,8 @@
+﻿{
+  "profiles": {
+    "Server": {
+      "commandName": "Project",
+      "dotnetRunMessages": true
+    }
+  }
+}
